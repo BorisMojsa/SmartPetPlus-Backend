@@ -1,0 +1,9 @@
+services:
+  - type: web
+    name: smart-pet-api
+    runtime: python
+    buildCommand: pip install -r api/python/requirements.txt
+    startCommand: cd api/python && gunicorn smart_pet:app --bind 0.0.0.0:$PORT
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.9 
