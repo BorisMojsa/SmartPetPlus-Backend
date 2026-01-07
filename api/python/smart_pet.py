@@ -25,8 +25,27 @@ SMART_PET_SHARED_SECRET = os.getenv('SMART_PET_SHARED_SECRET', '')
 FLASK_DEBUG_LOGS = os.getenv('FLASK_DEBUG', 'false').lower() == 'true'
 DEEPSEEK_MODEL = "deepseek-chat"
 
-# Set DashScope base URL
-dashscope.base_http_api_url = 'https://dashscope-intl.aliyuncs.com/api/v1'
+# Set DashScope base URL (configurable via env var)
+DASHSCOPE_BASE_URL = os.getenv(
+    'DASHSCOPE_BASE_URL',
+    'https://dashscope-intl.aliyuncs.com/api/v1',
+)
+dashscope.base_http_api_url = DASHSCOPE_BASE_URL
+
+# Debug logging for API configuration (startup only)
+if FLASK_DEBUG_LOGS or os.getenv('LOG_API_CONFIG', 'false').lower() == 'true':
+    key_length = len(DASHSCOPE_API_KEY) if DASHSCOPE_API_KEY else 0
+    print(f"[DEBUG] DashScope Base URL: {DASHSCOPE_BASE_URL}")
+    print(f"[DEBUG] DashScope API Key length: {key_length} chars")
+    print(
+        f"[DEBUG] Key starts with: "
+        f"{DASHSCOPE_API_KEY[:4] if DASHSCOPE_API_KEY and len(DASHSCOPE_API_KEY) >= 4 else 'N/A'}..."
+    )
+    if key_length < 30:
+        print(
+            f"[WARNING] API key seems short ({key_length} chars). "
+            "DashScope keys are typically 40+ characters."
+        )
 
 @app.route('/')
 def home():
@@ -140,9 +159,11 @@ def generate_story_with_deepseek(subject):
         }
         
         prompt = (
-            f"Write a super short, creative story (2-3 sentences) about a {clean_subject} that includes a surprising twist or funny moment. "
-            f"Tell it from the animal's perspective, and include a line of dialogue if possible. "
-            f"After the story, give one surprising, little-known, or funny fact about this exact breed/species. "
+            f"Write a super short, creative story (2-3 sentences) about {clean_subject} that includes a surprising twist or funny moment. "
+            f"If it's an animal, tell it from the animal's perspective. If it's a person or object, use an appropriate perspective. "
+            f"Include a line of dialogue if possible. "
+            f"After the story, give one surprising, little-known, or funny fact about {clean_subject} specifically (the exact subject identified, not a different subject). "
+            f"The fun fact MUST be directly related to {clean_subject} - if the subject is a human, give a fun fact about humans; if it's a specific animal breed, give a fun fact about that breed; if it's an object, give a fun fact about that object type. "
             f"Make it something most people wouldn't know, and if possible, relate it to pop culture, history, or a record. "
             f"End with a question or a call to action. Use this format exactly: [Story] ... [Fun Fact: ...]"
         )
